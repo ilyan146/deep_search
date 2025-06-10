@@ -2,13 +2,13 @@ from pydantic import BaseModel
 from agents import Agent
 
 
-HOW_MANY_SEARCHES = 20
+HOW_MANY_SEARCHES = 2
 
-INSTRUCTIONS = """
+INSTRUCTIONS = f"""
 You are a helpful research assistant. You will be given:
   • Original query  
   • A list of clarifying questions AND their answers  
-Using that, come up with a set of 20 focused web-search queries 
+Using that, come up with a set of {HOW_MANY_SEARCHES} focused web-search queries 
 that best answer the refined question.  
 Return a WebSearchPlan as before.
 """
