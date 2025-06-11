@@ -1,4 +1,6 @@
 from deep_search.manager_agent import manager_agent
+from deep_search.clarifier_agent import ClarificationData
+from deep_search.planner_agent import WebSearchPlan, planner_agent
 from dotenv import load_dotenv
 from agents import Runner, set_default_openai_api, set_default_openai_client, set_tracing_disabled
 from loguru import logger
@@ -30,51 +32,66 @@ async def run(query: str, answers: str, state: list[str]):
     if not state:
         clar = await Runner.run(manager_agent, query)
         # questions = clar.final_output.questions
-        questions = clar.final_output
-        logger.info(f"Clarifying questions: {questions}")
-        # qtext = "\n".join(f"{i+1}. {q}" for i, q in enumerate(questions))
-        qtext = questions
+        # Attempt parsing of the manager agents output
+        clar_agent_output = clar.final_output
+        logger.debug(f"Clarification agent output: {clar_agent_output}")
+        parsed_questions = ClarificationData.model_validate_json(clar_agent_output)
+        questions = parsed_questions.questions
+        qtext = "\n".join(f"{i+1}. {q}" for i, q in enumerate(questions))
         return qtext, gr.update(visible=True), questions
 
     # Phase 2: Full pipeline
     # 1) Bundle user answers for planner
-    # answered = [
-    #     f"{i+1}. {state[i]} answered: {ans.strip()}"
-    #     for i, ans in enumerate(answers.splitlines())
-    # ]
     answered = [
-        f"{i+1}. answered: {ans.strip()}"
+        f"{i+1}. {state[i]} answered: {ans.strip()}"
         for i, ans in enumerate(answers.splitlines())
     ]
     logger.info(f"User answers: {answered}")
 
-    planner_input = f"Using the following context: Original query: {query}\nClarifications:\n" + "\n".join(answered)
-    planner_input += "\nCreate a focused search plan using the planner tool"
-
+    planner_input = f"Now that I have the clarifications, please create a search plan using the planner tool.\n\nOriginal query: {query}\nClarifications:\n" + "\n".join(answered)
     logger.info(f"Planner input: {planner_input}")
 
     # 2) Generate search plan
     plan_res = await Runner.run(manager_agent, planner_input)
-    # searches = plan_res.final_output.searches
-    searches = plan_res.final_output
 
+    plan_res_output = plan_res.final_output
+    logger.debug(f"Planner agent output: {plan_res_output}")
+
+    # Parsing back to WebSearchPlan model
+    parsed_plan = WebSearchPlan.model_validate_json(plan_res_output)
+
+    # searches = plan_res.final_output.searches
+    searches = parsed_plan.searches
+    # searches = plan_res.final_output
     logger.info(f"Generated search plan: {searches}")
 
     # 3) Run each search and collect summaries
     summaries = []
     for item in searches:
         # search_res = await Runner.run(manager_agent, item.query)
-        search_res = await Runner.run(manager_agent, item)
+        search_prompt = f"STAGE: SEARCH - Please use the search tool to search for: {item.query}\n\nDo not ask clarifying questions. Return a summary of search results."
+        # search_res = await Runner.run(manager_agent, item.query)
+        search_res = await Runner.run(manager_agent, search_prompt)
+        logger.success(f"Search completed for query: {item.query}")
+        logger.debug(f"Search result: {search_res.final_output}")
         summaries.append(str(search_res.final_output))
 
     # 4) Write the full report
-    writer_input = f"Original query: {query}\nSummaries: {summaries}"
+    # writer_input = f"Original query: {query}\nSummaries: {summaries}"
+    writer_input = (
+    f"STAGE: WRITING - Please use the writer tool to create a markdown report.\n\n"
+    f"Original query: {query}\n"
+    f"Search summaries: {summaries}\n\n"
+    "Create a comprehensive markdown report based on these search results."
+    )
     logger.info(f"Writing report with input: {writer_input}")
     write_res = await Runner.run(manager_agent, writer_input)
     report_data = write_res.final_output
     logger.info(f"Generated report: {report_data}")
     # report_md = report_data.markdown_report
     report_md = report_data
+
+    return report_md, gr.update(visible=False), []
 
 
 # Gradio UI
