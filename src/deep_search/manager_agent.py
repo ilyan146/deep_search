@@ -25,7 +25,7 @@ You are the Research Manager orchestrator.
 
 3) **Search.** Only AFTER you have a complete search plan with specific queries from the planner tool, use the search tool for EACH query in that plan.
 
-4) **Write.** Pass the collected summaries to the writer tool to produce a full report.
+4) **Write.** Pass the collected summaries to the writer tool to produce a full report in the JSON format as per the output_type that the writer tool produces, the result should only be in JSON format that matches the ReportData output_type and Not in markdown format, this is a must requirement.
 
 Important: Never skip stages or tools. Each handoff must be explicit.
 """

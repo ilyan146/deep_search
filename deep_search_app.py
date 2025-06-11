@@ -1,6 +1,7 @@
 from deep_search.manager_agent import manager_agent
 from deep_search.clarifier_agent import ClarificationData
 from deep_search.planner_agent import WebSearchPlan, planner_agent
+from deep_search.writer_agent import ReportData
 from dotenv import load_dotenv
 from agents import Runner, set_default_openai_api, set_default_openai_client, set_tracing_disabled
 from loguru import logger
@@ -48,7 +49,7 @@ async def run(query: str, answers: str, state: list[str]):
     ]
     logger.info(f"User answers: {answered}")
 
-    planner_input = f"Now that I have the clarifications, please create a search plan using the planner tool.\n\nOriginal query: {query}\nClarifications:\n" + "\n".join(answered)
+    planner_input = f"Now that I have the clarifications, STAGE: PLAN - please create a search plan using the planner tool NOT the search tool, this is a requirement.\n\nOriginal query: {query}\nClarifications:\n" + "\n".join(answered)
     logger.info(f"Planner input: {planner_input}")
 
     # 2) Generate search plan
@@ -68,28 +69,29 @@ async def run(query: str, answers: str, state: list[str]):
     # 3) Run each search and collect summaries
     summaries = []
     for item in searches:
-        # search_res = await Runner.run(manager_agent, item.query)
-        search_prompt = f"STAGE: SEARCH - Please use the search tool to search for: {item.query}\n\nDo not ask clarifying questions. Return a summary of search results."
+        search_prompt = f"STAGE: SEARCH - Please use the search tool to search for: {item.query}\n\nDo not use the clarifier tool here. Return a summary of search results."
         # search_res = await Runner.run(manager_agent, item.query)
         search_res = await Runner.run(manager_agent, search_prompt)
         logger.success(f"Search completed for query: {item.query}")
         logger.debug(f"Search result: {search_res.final_output}")
         summaries.append(str(search_res.final_output))
 
-    # 4) Write the full report
+    # 4) Write the full report 
     # writer_input = f"Original query: {query}\nSummaries: {summaries}"
     writer_input = (
-    f"STAGE: WRITING - Please use the writer tool to create a markdown report.\n\n"
+    f"STAGE: WRITING - Please use the writer tool, this is a must requirement, to create a report in JSON format and NOT markdown format.\n\n"
     f"Original query: {query}\n"
-    f"Search summaries: {summaries}\n\n"
-    "Create a comprehensive markdown report based on these search results."
+    f"Search summaries: {summaries}"
     )
     logger.info(f"Writing report with input: {writer_input}")
     write_res = await Runner.run(manager_agent, writer_input)
     report_data = write_res.final_output
     logger.info(f"Generated report: {report_data}")
+    report_data_res = ReportData.model_validate_json(report_data)
+    logger.debug(f"Report data: {report_data_res}")
     # report_md = report_data.markdown_report
-    report_md = report_data
+    report_md = report_data_res.markdown_report
+    logger.debug(f"Markdown report: {report_md}")
 
     return report_md, gr.update(visible=False), []
 
