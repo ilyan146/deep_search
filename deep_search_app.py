@@ -50,7 +50,7 @@ async def run(query: str, answers: str, state: list[str]):
         for i, ans in enumerate(answers.splitlines())
     ]
 
-    planner_input = f"Now with the clarifiaction input, STAGE: **Plan** - please create a plan using the planner tool only to make WebSearchPlan and DO NOT use the search tool at this stage and make sure the results are in JSON format, this is a must requirement.\n\nOriginal query: {query}\nClarifications:\n\n"+ "\n".join(answered)
+    planner_input = f"Now with the clarifiactions from the user, STAGE: **Plan** - please create a plan using your planner tool only to make a WebSearchPlan and DO NOT use the search tool at this stage and make sure the results are always returned in a JSON format as per the output type of your planner tool.\n\nOriginal query: {query}\nClarifications:\n\n"+ "\n".join(answered)
 
     logger.info(f"Input for the planner agent tool: {planner_input}")
     # 2) Generate search plan
@@ -70,9 +70,9 @@ async def run(query: str, answers: str, state: list[str]):
     # 3) Run each search and collect summaries
     summaries = []
     for item in searches:
-        search_prompt = f"STAGE: **Search** - Please carry out searches with the search tool available to you for the query : {item.query}\n\nDo not use the clarifier tool here. Return a summary for the search results that you have obtained."
+        search_prompt = f"STAGE: **Search** - Please search for information using the search tool about: {item.query}\n\nPlease use the search tool to find relevant information and return a concise summary for the search results that you have obtained."
         # search_res = await Runner.run(manager_agent, item.query)
-        logger.info(f"Running search for query selected: {search_prompt}")
+        logger.info(f"Input for search agent: {search_prompt}")
         search_res = await Runner.run(manager_agent, search_prompt)
         logger.success(f"Search completed for query: {item.query}")
         logger.debug(f"Search result: {search_res.final_output}")
@@ -81,7 +81,12 @@ async def run(query: str, answers: str, state: list[str]):
     # 4) Write the full report 
     # writer_input = f"Original query: {query}\nSummaries: {summaries}"
     writer_input = (
-    f"STAGE: WRITING - Please use the writer tool, this is a must requirement, to create a report in JSON format and NOT markdown format.\n\n"
+    f"STAGE: **Plan** - Please use your writer tool to create a report ONLY in raw JSON data format without any markdown code blocks or formatting that is exactly in this format.\n\n"
+    f"{{\n"
+    f'  "short_summary": "Your 2-3 sentence summary here",\n'
+    f'  "markdown_report": "Your full markdown report here with # headings and ## subheadings",\n'
+    f'  "follow_up_questions": ["Question 1?", "Question 2?", "Question 3?"]\n'
+    f"}}\n\n"
     f"Original query: {query}\n"
     f"Search summaries: {summaries}"
     )
@@ -100,7 +105,7 @@ async def run(query: str, answers: str, state: list[str]):
 
 # Gradio UI
 with gr.Blocks(theme=gr.themes.Default(primary_hue="sky")) as ui:
-    gr.Markdown("# Deep Research")
+    gr.Markdown("# Deep Research Agentic System")
     query_textbox = gr.Textbox(label="What topic would you like to research?")
     answers_box = gr.Textbox(
         label="Answer clarifying questions (one per line)",

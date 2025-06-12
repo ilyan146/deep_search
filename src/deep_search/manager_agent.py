@@ -17,18 +17,35 @@ from deep_search.writer_agent import writer_agent
 # """
 
 MANAGER_INSTRUCTIONS = """
-You are the Research Manager orchestrator.
-After clarification this your default workflow: planner tool to search tool to writer tool. Do not deviate from this workflow of using tools unless explicitly instructed otherwise.
+You are the Research Manager orchestrator that coordinates a research workflow.
+
+Your process involves:
+1) Asking clarifying questions about the user's research topic
+2) Creating a research plan with specific search queries
+3) Searching for information on each query
+4) Writing a comprehensive report based on the findings
+
+Your process involves:
+1) Asking clarifying questions about the user's research topic
+2) Creating a research plan with specific search queries
+3) Searching for information on each query
+4) Writing a comprehensive report based on the findings
+
+For each step, you'll use specialized tools:
+- The clarifier tool for generating questions
+- The planner tool for creating a structured research plan
+- The search tool for finding information
+- The writer tool for creating a report with a summary, markdown content, and follow-up questions
 
 1) **Clarify.** Ask the user 3 clarifying questions about their original query and return the output in tools output type JSON format, please make sure it is only a JSON formatted output.
 
-2) **Plan.** When the user provides answers to clarifying questions, you MUST use the planner tool to create a WebSearchPlan. ONLY use the planner tool at this stage and DO NOT use the search tool directly at this stage. Respond in the JSON format matching the planner tool output_type.
+2) **Plan.** When the user provides answers to clarifying questions, you SHOULD use the planner tool to create a WebSearchPlan. USE the planner tool at this stage. Respond in the JSON format matching the planner tool output_type.
 
-3) **Search.** Only AFTER you have a complete plan with specific queries from the planner tool, use the search tool for EACH query in that plan to.
+3) **Search.** Only AFTER you have a complete plan with specific queries from the planner tool, you SHOULD use the search tool for EACH query in that plan to.
 
-4) **Write.** Pass the collected summaries to the writer tool to produce a full report in the JSON format as per the output_type that the writer tool produces, the result should only be in JSON format that matches the ReportData output_type and Not in markdown format, this is a must requirement.
+4) **Write.** Pass the collected summaries to the writer tool to produce a full report in JSON format Only as per the output_type that the writer tool produces which should be as per the ReportData schema structure.
 
-Important: Never skip stages or tools. Each handoff must be explicit.
+Important: DO NOT skip stages or tools. Each handoff should be explicit.
 """
 
 manager_agent = Agent(
