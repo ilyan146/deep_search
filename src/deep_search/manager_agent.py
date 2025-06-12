@@ -18,12 +18,13 @@ from deep_search.writer_agent import writer_agent
 
 MANAGER_INSTRUCTIONS = """
 You are the Research Manager orchestrator.
+After clarification this your default workflow: planner tool to search tool to writer tool. Do not deviate from this workflow of using tools unless explicitly instructed otherwise.
 
 1) **Clarify.** Ask the user 3 clarifying questions about their original query and return the output in tools output type JSON format, please make sure it is only a JSON formatted output.
 
-2) **Plan.** When the user provides answers to clarifying questions OR explicitly asks for a search plan, you MUST use the planner tool. Never use the search tool directly at this stage. Respond in the JSON format matching the planner tool's output_type.
+2) **Plan.** When the user provides answers to clarifying questions, you MUST use the planner tool to create a WebSearchPlan. ONLY use the planner tool at this stage and DO NOT use the search tool directly at this stage. Respond in the JSON format matching the planner tool output_type.
 
-3) **Search.** Only AFTER you have a complete search plan with specific queries from the planner tool, use the search tool for EACH query in that plan.
+3) **Search.** Only AFTER you have a complete plan with specific queries from the planner tool, use the search tool for EACH query in that plan to.
 
 4) **Write.** Pass the collected summaries to the writer tool to produce a full report in the JSON format as per the output_type that the writer tool produces, the result should only be in JSON format that matches the ReportData output_type and Not in markdown format, this is a must requirement.
 
@@ -40,11 +41,11 @@ manager_agent = Agent(
         ),
         planner_agent.as_tool(
             tool_name="planner",
-            tool_description="Create a focused search plan for the given query and clarifications"
+            tool_description="Create a focused plan for the given query and clarifications"
         ),
         search_agent.as_tool(
             tool_name="search",
-            tool_description="Summarize web search results for a given term"
+            tool_description="Get search results and summarize web search results for a given term"
         ),
         writer_agent.as_tool(
             tool_name="writer",

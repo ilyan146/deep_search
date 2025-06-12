@@ -35,9 +35,11 @@ async def run(query: str, answers: str, state: list[str]):
         # questions = clar.final_output.questions
         # Attempt parsing of the manager agents output
         clar_agent_output = clar.final_output
-        logger.debug(f"Clarification agent output: {clar_agent_output}")
         parsed_questions = ClarificationData.model_validate_json(clar_agent_output)
         questions = parsed_questions.questions
+        logger.debug(f"Clarifier agent output type: {type(parsed_questions)}")
+        logger.debug(f"Clarification agent output .questions: {questions}")
+
         qtext = "\n".join(f"{i+1}. {q}" for i, q in enumerate(questions))
         return qtext, gr.update(visible=True), questions
 
@@ -47,30 +49,30 @@ async def run(query: str, answers: str, state: list[str]):
         f"{i+1}. {state[i]} answered: {ans.strip()}"
         for i, ans in enumerate(answers.splitlines())
     ]
-    logger.info(f"User answers: {answered}")
 
-    planner_input = f"Now that I have the clarifications, STAGE: PLAN - please create a search plan using the planner tool NOT the search tool, this is a requirement.\n\nOriginal query: {query}\nClarifications:\n" + "\n".join(answered)
-    logger.info(f"Planner input: {planner_input}")
+    planner_input = f"Now with the clarifiaction input, STAGE: **Plan** - please create a plan using the planner tool only to make WebSearchPlan and DO NOT use the search tool at this stage and make sure the results are in JSON format, this is a must requirement.\n\nOriginal query: {query}\nClarifications:\n\n"+ "\n".join(answered)
 
+    logger.info(f"Input for the planner agent tool: {planner_input}")
     # 2) Generate search plan
     plan_res = await Runner.run(manager_agent, planner_input)
 
     plan_res_output = plan_res.final_output
-    logger.debug(f"Planner agent output: {plan_res_output}")
+    logger.debug(f"Planner agent tools output: {plan_res_output}")
 
     # Parsing back to WebSearchPlan model
     parsed_plan = WebSearchPlan.model_validate_json(plan_res_output)
-
+    logger.debug(f"Planner agent output after loading to pydantic Type: {type(parsed_plan)}")
     # searches = plan_res.final_output.searches
     searches = parsed_plan.searches
     # searches = plan_res.final_output
-    logger.info(f"Generated search plan: {searches}")
+    logger.debug(f"Generated search plan from .searches in the pydantic object: {searches}")
 
     # 3) Run each search and collect summaries
     summaries = []
     for item in searches:
-        search_prompt = f"STAGE: SEARCH - Please use the search tool to search for: {item.query}\n\nDo not use the clarifier tool here. Return a summary of search results."
+        search_prompt = f"STAGE: **Search** - Please carry out searches with the search tool available to you for the query : {item.query}\n\nDo not use the clarifier tool here. Return a summary for the search results that you have obtained."
         # search_res = await Runner.run(manager_agent, item.query)
+        logger.info(f"Running search for query selected: {search_prompt}")
         search_res = await Runner.run(manager_agent, search_prompt)
         logger.success(f"Search completed for query: {item.query}")
         logger.debug(f"Search result: {search_res.final_output}")
