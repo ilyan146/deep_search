@@ -1,0 +1,57 @@
+[project]
+name = "deep-search"
+version = "0.1.0"
+description = "Add your description here"
+readme = "README.md"
+authors = [
+    { name = "Nazer, Mohamed Ilyan", email = "mohamed.ilyan+Boskalis@boskalis.com" }
+]
+requires-python = ">=3.12"
+dependencies = [
+    "azure-core>=1.34.0",
+    "azure-identity>=1.23.0",
+    "databricks-langchain>=0.3.0",
+    "dotenv>=0.9.9",
+    "gradio>=5.29.1",
+    "langchain>=0.3.25",
+    "langchain-community>=0.3.24",
+    "langchain-core>=0.3.59",
+    "langchain-openai>=0.3.17",
+    "langgraph>=0.4.3",
+    "loguru>=0.7.3",
+    "mcp-server-fetch>=2025.4.7",
+    "mcp[cli]>=1.9.0",
+    "mlflow>=2.22.0",
+    "notebook>=7.4.2",
+    "openai>=1.78.1",
+    "openai-agents>=0.0.15",
+    "pydantic>=2.11.4",
+    "pypdf2>=3.0.1",
+]
+
+[dependency-groups]
+dev = [
+    "pre-commit>=4.0.1",
+    "pytest>=8.3.3",
+    "pytest-md>=0.2.0",
+    "pytest-emoji>=0.2.0",
+    "ruff>=0.11.9",
+    "openai-agents[viz]>=0.0.15",
+]
+
+[tool.ruff]
+target-version = "py312"
+line-length = 130
+
+[tool.ruff.lint]
+select = ["E", "F", "B", "I"]
+ignore = []
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "auto"
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
